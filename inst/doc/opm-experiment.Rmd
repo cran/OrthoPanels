@@ -1,0 +1,122 @@
+
+---
+title: "An Experiment with _'OrthoPanels'_"
+author: Davor Cubranic and Mark Pickup
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    fig_width: 7
+    fig_height: 5
+  rmarkdown::pdf_document:
+    toc: false
+vignette: >
+  %\VignetteIndexEntry{An experiment with _OrthoPanels_}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+Let's investigate the accuracy of _opm_'s parameter estimates on 200
+simulated datasets.
+
+First, let's define the parameters used by the data-generating
+process:
+```{r parameters}
+rho <- .5
+beta <- .5
+sig2 <- 1
+```
+
+The following function generates a synthetic dataset of desired
+dimensions (_N_ cases and _T_ time points) and
+distribution parameters ($\rho = \texttt{rho}$, $\beta =
+\texttt{beta}$, and $\sigma^2 = \texttt{sig2}$):
+
+```{r generate_fn}
+generate <- function(N, T, rho, beta, sig2) {
+    f <- runif(N, -2, 2)
+    K <- length(beta)
+    beta <- matrix(beta, K, 1)
+
+    x <- array(.75*f, dim=c(N, K, T)) + rnorm(N*K*T, sd = 1)
+
+    y <- matrix(0, N, T)
+    for (t in 1:T) {
+        yy <- if (t>1) y[,t-1] else 0
+        y[,t] <- rho * yy + f  + x[,,t] %*% beta + rnorm(N, sd = sqrt(sig2))
+    }
+
+    data.frame(i = rep(seq(N), T),
+               t = rep(seq(T), each = N),
+               as.data.frame(matrix(aperm(x, c(1, 3, 2)), N*T, K,
+                                    dimnames = list(NULL, paste0('x', seq(K))))),
+               y = c(y))
+}
+```
+
+Now we generate a dataset with _N_=1000 cases and _T_=3 time points
+and fit the model to it 200 times:
+```{r simulate}
+library(OrthoPanels)
+library(knitr)
+
+N <- 1000
+T <- 3
+reps <- 200
+
+set.seed(123)
+opms <- replicate(n = reps,
+                  opm(y~x1,
+                      data = generate(N = N, T = T,
+                                      rho = rho,
+                                      beta = beta,
+                                      sig2 = sig2),
+                      n.samp = 1000),
+                  simplify = FALSE)
+```
+
+Let's check the sampled parameters:
+
+
+```{r avg_param}
+true_param <- c(rho = rho, sig2 = sig2, beta = beta)
+est_param <- sapply(opms, coef)
+resid <- sweep(est_param, 1, true_param)
+rmse <- sqrt(rowMeans(resid^2))
+kable(rbind(`True` = true_param,
+            `Est` = rowMeans(est_param),
+            `Bias` = rowMeans(resid),
+            `RMSE` = rmse))
+```
+
+Density plot for each parameter, with true value marked with a
+vertical line:
+
+```{r rho_dens}
+plot(density(sapply(opms, coef)[1,]),
+     main = 'Density of median of posterior samples of rho')
+abline(v = rho, col='darkred')
+```
+
+```{r sig2_dens}
+plot(density(sapply(opms, coef)[2,]),
+     main = 'Density of median of posterior samples of sig2')
+abline(v = sig2, col='darkred')
+```
+
+```{r beta_dens}
+plot(density(sapply(opms, coef)[3,]),
+     main = 'Density of median of posterior samples of beta')
+abline(v = beta, col='darkred')
+```
+
+The proportion of time the 95% credible interval includes the true value of the
+parameter:
+
+```{r confint}
+cis <- sapply(lapply(opms, confint),
+             function(ci) {
+                 ci[,'2.5%'] <= c(rho, sig2, beta) &
+                 ci[,'97.5%'] >= c(rho, sig2, beta)
+             })
+kable(rowSums(cis) / reps)
+```

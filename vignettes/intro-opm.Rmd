@@ -1,0 +1,132 @@
+---
+title: "Introduction to _'OrthoPanels'_"
+author: Davor Cubranic and Mark Pickup
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    fig_width: 7
+    fig_height: 5
+vignette: >
+  %\VignetteIndexEntry{Introduction to _OrthoPanels_}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+```{r knitr_setup, echo = FALSE}
+knitr::opts_chunk$set(tidy = TRUE, warning = FALSE)
+library(OrthoPanels)
+```
+
+We demonstrate how to use the OrthoPanels package with an analysis of
+a subset of data
+from the 2010 British Election Study. The data consists of 3 waves of
+panel survey data with 1845 respondents. Our dependent variable is
+government approval ("Approve"), while independent variables in the
+model are evaluations of each party's leader ("Brown", "Cameron", and
+"Clegg" for Labour, Conservative, and Liberal Party respectively) and
+government health and security policies ("NHS" and "Terror");
+assesment of the economic situation ("Econ"); preference for taxing
+and spending policy ("Tax"); and personal identification with the
+governing Labour Party ("PID").
+
+This subset of BES 2010 data is included with the OrthoPanels package
+as dataset
+`BES_panel`. It is a data frame that includes all of the survey
+variables as described above, plus the variables for the case number
+("n") and the wave ("t") of each observation:
+
+```{r}
+head(BES_panel)
+```
+
+We begin by specifying our model using a formula, indicating the data
+to be used, and the case and time variables:
+```{r}
+BES.opm <- opm(Approve~Econ+Clegg+Brown+Cameron-NHS+Terror+PID-Tax,
+data=BES_panel, index = c('n', 't'), n.samp=1000, add.time.indicators=TRUE)
+```
+
+The first argument is a formula specifying the model symbolically:
+`response ~ term1 + term2`. This is consistent with the `lm()` function.
+It is not necessary to include the lagged dependent variable or the
+fixed effects in the model specification. This is done automatically.
+
+The other arguments are: `data` which specifies the data frame, list
+or environment containing the variables in the model; `n.samp` which
+specifies the number of samples (MC iterations) to use to estimate the
+parameters; `index` which is a two-element vector containing the index
+or name of the case and time variables, respectively; and
+`add.time.indicators` which is a logical argument. If
+`add.time.indicators` is `TRUE`, the model includes dummy variables for
+each wave (time point). The default is `FALSE`. The `data` and `index`
+arguments are optional; if `data` is missing, variables are looked up
+in the environment, while the default value of `index` is the first
+two variables in the data frame. An additional optional argument is
+`subset`. This is a vector specifying a subset of observations to be
+used in the estimation.
+
+The function `opm()` returns an object of class `opm` which includes a
+list,` samples`, with the following elements: `rho`, a vector of `n`.samp
+parameter samples of $\rho$; `sig2`, a vector of n.samp parameter samples of $\sigma^2$;
+and `beta`, an `n.samp x variable` matrix of parameters samples of $\beta$. If
+included in the model, the parameters for the time dummies are
+included in this matrix:
+```{r}
+str(BES.opm)
+```
+
+The summary of the object provides us with the median, 68% equal
+tailed credible intervals and 95% equal tailed credible intervals for
+each parameter:
+
+```{r}
+summary(BES.opm)
+```
+
+The package includes functions that may be of use in exploring the
+results. Method `confint` for objects of `opm` class computes
+equal-tailed credible intervals for one or more parameters in the
+fitted opm model. We can calculate 90% equal-tailed credible intervals
+as follows:
+
+```{r}
+confint(BES.opm, level=0.9)
+```
+
+The function `caterplot` creates side-by-side plots of credible
+intervals of the opm model parameters. The intervals are displayed as
+horizontal lines, with the 90% interval using a thicker line width and
+the 95% interval a thinner one. The posterior median is indicated with
+a dot.
+
+```{r}
+caterplot(BES.opm, main = "BES 2010 opm parameter estimates")
+abline(v=0)
+```
+
+
+We can use the function `plot()` to obtain the posterior density of
+each parameter:
+
+```{r}
+plot(BES.opm, 'rho')
+```
+
+In a dynamic model, the $\beta$ coefficients are the immediate effects
+of a change in each of the covariates. This is known as the short run
+effect. However, in a dynamic model, the short run effect is not the
+full effect of a change in a covariate. As the future value of the
+dependent variable depends on the current value, the effect of a
+change in a covariate has a knock on effect into the future. The
+effect builds at a declining rate until it asymptotically reaches its
+full effect. This is known as the long-run effect and is estimated as
+$\frac{\beta}{1-\rho}$, where $\rho$ is the autoregressive parameter
+(Wooldridge, 2013; Pickup, 2014). We can calculate the median and 95%
+equal tailed credible intervals for the long-run effects from the
+parameter samples. For example, for the first independent variable
+(the economy):
+
+```{r}
+quantile(BES.opm$samples$beta[,1]/(1-BES.opm$samples$rho), probs=c(0.025, 0.5, 0.975))
+```

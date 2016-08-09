@@ -6,23 +6,12 @@ x <- NULL
 y <- NULL
 local({
     set.seed(123)
-    f <- -1:1
     N <- 3
     T <- 2
-    beta <- .5
-    rho <- .5
 
-    ## $x_i = 0.75 f + N(0, 1)$:
-    x <- aperm(array(.75*f + rnorm(N*(T+1)), dim = c(N, 1, T+1)), 3:1)
-
-    ## $y_{i,t} = \rho y_{i,t-1} + \beta x_{i,t} + f_i + N(0,1)$:
-    y <- matrix(rep(beta*x[1,,] + f + rnorm(N), each = T+1), T+1, N)
-    for (t in seq_len(T)+1) {
-        y[t,] <- rho*y[t-1,] + f + beta*x[t,,] + rnorm(N)
-    }
-
-    x <<- x
-    y <<- y
+    dd <- generate_data(N=N, T=T)
+    x <<- dd$x
+    y <<- dd$y
 })
 
 

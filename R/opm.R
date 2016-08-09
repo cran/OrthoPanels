@@ -32,6 +32,12 @@
 #' \item{\code{terms}}{the \code{terms} object used}
 #' }
 #'
+#' The function \code{summary} (i.e., \code{summary.opm}) can be used
+#' to obtain or print a summary of the results. The generic accessor
+#' functions \code{coefficients}, \code{fitted.values},
+#' \code{residuals}, \code{logLik}, and \code{df.residual} can be used
+#' to extract various useful features of the value returned by \code{opm}.
+#' 
 #' @examples
 #' set.seed(123)
 #' N <- 5
@@ -77,6 +83,7 @@ opm <- function(x, ...) {
 #' (2000)). The new variables are named \code{tind.}\eqn{t}, where
 #' \eqn{t = 2, ...}, and appear as such as elements of the estimated
 #' \code{beta} coefficient.
+#' @importFrom stats median
 #' @export
 opm.default <- function(x, y, n.samp, add.time.indicators = FALSE, ...) {
     cl <- match.call()
@@ -84,38 +91,30 @@ opm.default <- function(x, y, n.samp, add.time.indicators = FALSE, ...) {
     cl[[1]] <- as.name('opm')
     
     if (add.time.indicators) {
-        ## temporary rearrange to make adding dummies easier
-        x <- aperm(x, c(1, 3, 2))
-        dims <- dim(x)
-        T <- dims[1]
-        N <- dims[2]
-        K <- dims[3]
-        K_dum <- T-2
-        dims[3] <- K + K_dum
-        
-        dimnams <- dimnames(x)
-        if (is.null(dimnams)) {
-            dimnams <- list(NULL, NULL, NULL)
-        }
-        if (is.null(dimnams[[3]])) {
-            dimnams[[3]] <- seq(K)
-        }
-        dimnams[[3]] <- c(dimnams[[3]], paste('tind', seq(K_dum)+1, sep='.'))
-        
-        dummys <- rep(c(rbind(matrix(0, 2, K_dum), diag(K_dum))), N)
-        x <- array(c(x,
-                     dummys),
-                   dims,
-                   dimnams)
-
-        ## rearrange back
-        x <- aperm(x, c(1, 3, 2))
+        x <- with_time_indicators(x)
     }
     
     sample_params <- sample_all(x, y, n.samp)
     
+    Ti <- Ti(x, y) - 1                  # x and y are not centered yet
+    rho_ <- median(sample_params$rho)
+    beta_ <- apply(sample_params$beta, 2, median)
+    v_ <- 1/median(sample_params$sig2)
+    fitted <- fitted(x, y, rho_, beta_)
+    residuals <- center_yt(y, Ti) - fitted
+    df.residual <- sum(ifelse(Ti>0, Ti, 0)) - (ncol(x)+1)
+    logLik <- log_likelihood(x, y, rho_, matrix(beta_, ncol(x), 1), v_)
+
+    design <- if (all(Ti == nrow(x)-1)) "balanced" else "unbalanced (with dropouts)"
+    
     structure(list(samples = sample_params,
+                   fitted.values = fitted,
+                   residuals = residuals,
+                   df.residual = df.residual,
+                   logLik = logLik,
+                   design = design,
                    call = cl,
+                   .Environment = parent.frame(),
                    time.indicators = add.time.indicators && TRUE),
               class = 'opm')
 }
@@ -135,48 +134,112 @@ opm.default <- function(x, y, n.samp, add.time.indicators = FALSE, ...) {
 #' organization of the terms and response arrays.
 #' @importFrom stats as.formula model.matrix model.response xtabs
 #' @export
-opm.formula <- function(x, data = environment(x), subset, index = 1:2, n.samp, ...) {
+opm.formula <- function(x, data = environment(x), subset = NULL, index = 1:2, n.samp, ...) {
     cl <- match.call()
     ## clean up the call name to refer to the generic
     cl[[1]] <- as.name('opm')
     
-    mf <- match.call(expand.dots = FALSE)
-    m <- match(c("x", "data", "subset"), names(mf), 0L)
-    mf <- mf[c(1L, m)]
-    mf[[1L]] <- quote(stats::model.frame)
-    names(mf)[m[1]] <- 'formula'
-    mf <- eval.parent(mf)
+    with(reshape_inputs(x, data, subset, index, parent.frame()), {
+        modifyList(opm.default(x, y, n.samp, ...),
+                   list(call = cl,
+                        index = vapply(index, function(ix) {
+                                    if (is.numeric(ix)) names(data)[ix] else ix
+                                }, character(1), USE.NAMES = FALSE),
+                        terms = mt,
+                        .Environment = attr(mt, '.Environment')))
+    })
+}
+
+
+## Extend responses with T-2 columns of dummy variables for time
+with_time_indicators <- function(x) {
+    ## temporary rearrange to make adding dummies easier
+    x <- aperm(x, c(1, 3, 2))
+    dims <- dim(x)
+    T <- dims[1]
+    N <- dims[2]
+    K <- dims[3]
+    K_dum <- T-2
+    dims[3] <- K + K_dum
+    
+    dimnams <- dimnames(x)
+    if (is.null(dimnams)) {
+        dimnams <- list(NULL, NULL, NULL)
+    }
+    if (is.null(dimnams[[3]])) {
+        dimnams[[3]] <- seq(K)
+    }
+    dimnams[[3]] <- c(dimnams[[3]], paste('tind', seq(K_dum)+1, sep='.'))
+    
+    dummys <- rep(c(rbind(matrix(0, 2, K_dum), diag(K_dum))), N)
+    x <- array(c(x,
+                 dummys),
+               dims,
+               dimnams)
+
+    ## rearrange back
+    x <- aperm(x, c(1, 3, 2))
+}
+
+
+## Convert the input formula and data to a 3-d array for predictors and a matrix for the response
+##
+## arguments:
+## - formula: formula specifying the model
+## - data: environment containing the variables in the model
+## - subset: subset of observations to use (NULL=all)
+## - index: index of the case and time variables
+## - envir: environment in which the model.frame should be evaluated
+##
+## returns a list object with elements:
+## - x: 3-d array for predictors
+## - y: matrix for responses
+## - mt: the 'terms' object used
+reshape_inputs <- function(formula, data, subset, index, envir) {
+    mf <- eval(bquote(stats::model.frame(formula = .(formula),
+                                         data = .(data),
+                                         subset = .(subset),
+                                         na.action = na.pass)),
+               envir)
     
     mt <- attr(mf, "terms")
     attr(mt, "intercept") <- 0L
     
     y <- model.response(mf, "numeric")
-        y <- xtabs(y~t+i, data.frame(i = data[[index[1]]], t =
-                                 data[[index[2]]], y=y))
+    yf <- data.frame(i = data[[index[1]]],
+                     t = data[[index[2]]],
+                     y = y)
+    y <- xtabs(y~t+i, yf)
+    class(y) <- 'matrix'
+    y_nas <- as.matrix(yf[is.na(yf$y), 2:1])
+    y[y_nas] <- NA
+    
     x <- model.matrix(mt, mf)
+    xf <- data.frame(i = data[[index[1]]], t = data[[index[2]]],
+                     as.data.frame(x))
     x <- xtabs(as.formula(paste0('cbind(',
                                  paste(colnames(x), collapse=','),
                                  ') ~ t+i')),
-               data.frame(i = data[[index[1]]], t = data[[index[2]]],
-                          as.data.frame(x)))
-    if (length(dim(x)) == 2) dim(x) <- c(dim(x), 1)
-    x <- aperm(x, c(1L, 3L, 2L))
-
-    result <- opm.default(x, y, n.samp, ...)
-    result$call <- cl
-    result$index <- vapply(index, function(ix) {
-        if (is.numeric(ix)) names(data)[ix] else ix
-    }, character(1), USE.NAMES = FALSE)
-    result$terms <- mt
+               xf)
+    class(x) <- 'array'
+    x_nas <- as.matrix(xf[apply(xf[, -(1:2), drop=FALSE], 1,
+                                function(row)any(is.na(row))), 2:1])
     
-    result
+    if (length(dim(x)) == 2) dim(x) <- c(dim(x), 1)
+    for (k in seq_len(dim(x)[3])) {
+        x[,,k][x_nas] <- NA
+    }
+    x <- aperm(x, c(1L, 3L, 2L))
+    
+    list(x=x, y=y, mt=mt)
 }
 
 
 #' @importFrom stats sd
 #' @export
-print.opm <- function(x, digits = max(3, getOption("digits") - 2),
-                      width = getOption("width"), ...) {
+print.opm <- function(x, digits = max(3, getOption("digits") - 2), prefix = "\t", ...) {
+    cat(strwrap(paste("Panel design:", x$design), prefix = prefix), sep = "\n")
+    cat("\n")
     cat('Call:\n')
     dput(x$call, control = NULL)
     
@@ -308,6 +371,72 @@ quantile.opm <- function(x, parm, ...) {
 
     sapply(data.frame(x$samples[parm]),
            quantile, ...)
+}
+
+
+#' @importFrom stats logLik
+#' @export
+logLik.opm <- function(object, ...) {
+    structure(object$logLik,
+              nobs = length(object$residuals),
+              df = object$df.resid,
+              class = 'logLik')
+}
+
+#' Deviance Information Criterion (DIC)
+#' 
+#' Computes the Deviance Information Criterion (DIC), which is a
+#' generalization of the Akaike Information Criterion. Models with
+#' smaller DIC are considered to fit better than models with larger
+#' DIC.
+#'
+#' DIC is defined as \eqn{DIC = 2*\bar{D} - D_\theta}
+#' where:
+#' \eqn{\bar{D} = -2 mean(log-likelihood at parameter samples)}
+#' \eqn{D_\theta = -2 * log(likelihood at expected value of parameters)}
+#'
+#' DIC is calculated as: \code{2 * (-2 * mean(log-likelihood at each element of parameter samples)) - (-2 * log(likelihood at mean parameter sample value))}
+#'
+#' @param object an instance of class \code{opm} whose DIC is wanted.
+#' @param ... further arguments passed to other methods.
+#' 
+#' @return a numeric value with the corresponding DIC
+#' 
+#' @note Note the speed of computation of the DIC in proportional to
+#'     the number of sampled values of the parameters in the opm
+#'     object.
+#' @export
+DIC <- function(object, ...) {
+    cl <- object$call
+    env <- object$.Environment
+    if ('terms' %in% names(object)) {
+        data <- if (!is.null(cl$data)) eval(cl$data, env) else env
+        index <- if (!is.null(cl$index)) eval(cl$index, env) else eval(formals(opm.formula)$index)
+        subset <- if (!is.null(cl$subset)) eval(cl$subset, env) else eval(formals(opm.formula)$subset)
+
+        inputs <- reshape_inputs(cl$x, data, subset, index, env)
+        x <- inputs$x
+        y <- inputs$y
+    }
+    else {
+        env <- object$.Environment
+        x <- eval(cl[[2]], env)
+        y <- eval(cl[[3]], env)
+    }
+    if (isTRUE(object$time.indicators)) {
+        x <- with_time_indicators(x)
+    }
+    
+    sample_parameters <- object$samples
+    K <- ncol(x)
+    D1_at_mean_param <- with(sample_parameters,
+                             log_likelihood(x, y, mean(rho), matrix(colMeans(beta), K), 1/mean(sig2)))
+    mean_D1 <- mean(with(sample_parameters,
+                         mapply(function(r, b, v) log_likelihood(x, y, r, matrix(b, K), v),
+                                rho,
+                                data.frame(t(beta)),
+                                1/sig2)))
+    2 * (-2 * mean_D1) - 2 * D1_at_mean_param
 }
 
 

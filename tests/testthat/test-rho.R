@@ -7,23 +7,12 @@ x <- NULL
 y <- NULL
 local({
     set.seed(123)
-    f <- -1:1
     N <- 3
     T <- 2
-    beta <- .5
-    rho <- .5
 
-    ## $x_i = 0.75 f + N(0, 1)$:
-    x <- aperm(array(.75*f + rnorm(N*(T+1)), dim = c(N, 1, T+1)), 3:1)
-
-    ## $y_{i,t} = \rho y_{i,t-1} + \beta x_{i,t} + f_i + N(0,1)$:
-    y <- matrix(rep(beta*x[1,,] + f + rnorm(N), each = T+1), T+1, N)
-    for (t in seq_len(T)+1) {
-        y[t,] <- rho*y[t-1,] + f + beta*x[t,,] + rnorm(N)
-    }
-
-    x <<- x
-    y <<- y
+    dd <- generate_data(N=N, T=T)
+    x <<- dd$x
+    y <<- dd$y
 })
 
 
@@ -41,18 +30,20 @@ test_that('data', {
 
 
 test_that('centering', {
-    X <- round(center_x(x), 2)
+    Ti <- Ti(x, y) - 1
+    X <- round(center_x(x, Ti), 2)
     expect_equal(X, array(c(-0.2, 0.2, 0.7, -0.7, 1.2, -1.2),
                           dim = c(2, 1, 3)))
 
-    Y <- round(center_y(y), 2)
+    Y <- round(center_y(y, Ti), 2)
     expect_equal(Y, matrix(c(0.11, 1.75, -0.38, -0.88, 0.42, -1.98),
                            nrow = 2, ncol = 3))
 })
 
 
 test_that('w', {
-    W <- round(w(center_y(y), rho = .5), 2)
+    Ti <- Ti(x, y) - 1
+    W <- round(w(center_y(y, Ti), rho = .5), 2)
     expect_equal(W, matrix(c(0.11, 1.69, -0.38, -0.69, 0.42, -2.19),
                            nrow = 2, ncol = 3))
 })
@@ -65,7 +56,8 @@ test_that('b', {
 
 
 test_that('y_', {
-    expect_equal(lapply(1:3, y_, y = center_y(y)),
+    Ti <- Ti(x, y) - 1
+    expect_equal(lapply(1:3, y_, y = center_y(y, Ti)),
                  list(c(0, 0.111475542994372),
                       c(0, -0.379169942823318),
                       c(0, 0.419607366621602)))
@@ -73,8 +65,9 @@ test_that('y_', {
 
 
 test_that('Q_star', {
-    X <- center_x(x)
-    W <- w(center_y(y), rho = .5)
+    Ti <- Ti(x, y) - 1
+    X <- center_x(x, Ti)
+    W <- w(center_y(y, Ti), rho = .5)
 
     expect_equal(wHw(W), matrix(4.70895872876527, 1))
     

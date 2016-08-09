@@ -10,8 +10,8 @@ opm(x, ...)
 
 \method{opm}{default}(x, y, n.samp, add.time.indicators = FALSE, ...)
 
-\method{opm}{formula}(x, data = environment(x), subset, index = 1:2, n.samp,
-  ...)
+\method{opm}{formula}(x, data = environment(x), subset = NULL,
+  index = 1:2, n.samp, ...)
 }
 \arguments{
 \item{x}{a formula (see description of parameter \code{formula}
@@ -55,6 +55,12 @@ as a list with following elements:}
 \item{\code{time.indicators}}{\code{TRUE} if dummy time variables are used (see Notes), \code{FALSE} otherwise}
 \item{\code{terms}}{the \code{terms} object used}
 }
+
+The function \code{summary} (i.e., \code{summary.opm}) can be used
+to obtain or print a summary of the results. The generic accessor
+functions \code{coefficients}, \code{fitted.values},
+\code{residuals}, \code{logLik}, and \code{df.residual} can be used
+to extract various useful features of the value returned by \code{opm}.
 }
 \description{
 \code{opm} is used to fit orthogonal panel models.

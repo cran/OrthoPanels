@@ -8,24 +8,16 @@ d <- NULL
 o <- NULL
 local({
     set.seed(123)
-    f <- -1:1
     N <- 3
     T <- 2
-    beta <- .5
-    rho <- .5
 
-    ## $x_i = 0.75 f + N(0, 1)$:
-    x <- aperm(array(.75*f + rnorm(N*(T+1)), dim = c(N, 1, T+1)), 3:1)
-
-    ## $y_{i,t} = \rho y_{i,t-1} + \beta x_{i,t} + f_i + N(0,1)$:
-    y <- matrix(rep(beta*x[1,,] + f + rnorm(N), each = T+1), T+1, N)
-    for (t in seq_len(T)+1) {
-        y[t,] <- rho*y[t-1,] + f + beta*x[t,,] + rnorm(N)
-    }
-
-    x <<- x
-    y <<- y
-    d <<- data.frame(i=rep(1:3, each=3), t=rep(1:3, 3), x=c(x), y = c(y))
+    dd <- generate_data(N=N, T=T)
+    x <<- dd$x
+    y <<- dd$y
+    d <<- data.frame(i = rep(seq_len(N), each=T+1),
+                     t = rep(seq_len(T+1), N),
+                     x = c(x),
+                     y = c(y))
 
     set.seed(123)
     o <<- opm(y~x, d, n.samp = 10)
@@ -74,7 +66,15 @@ test_that('default', {
                                                                   1.25150458784134,
                                                                   1.11183526859818,
                                                                   1.05848623306165))),
+                                fitted.values = matrix(c(-0.249023320200172, 0.249023320200172, 
+                                                         0.883217759019736, -0.883217759019736, 1.17225244244488, -1.17225244244488), 2, 3),
+                                residuals = matrix(c(-0.569518362294091, 0.569518362294091, 
+                                                     -0.633421912014096, 0.633421912014096, 0.0287131865317012, -0.0287131865317007), 2, 3),
+                                df.residual = 2*3 - 2,
+                                logLik = 0.488478652112829,
+                                design = "balanced",
                                 call = quote(opm(x = x, y = y, n.samp = 10)),
+                                .Environment = environment(),
                                 time.indicators = FALSE),
                            class = 'opm'))
 })
@@ -110,7 +110,15 @@ test_that('formula', {
                                                                  1.25150458784134,
                                                                  1.11183526859818,
                                                                  1.05848623306165))),
+                               fitted.values = matrix(c(-0.249023320200172, 0.249023320200172, 
+                                                         0.883217759019736, -0.883217759019736, 1.17225244244488, -1.17225244244488), 2, 3),
+                               residuals = matrix(c(-0.569518362294091, 0.569518362294091, 
+                                                     -0.633421912014096, 0.633421912014096, 0.0287131865317012, -0.0287131865317007), 2, 3, dimnames=list(t=2:3, i = 1:3)),
+                               df.residual = 2*3 - 2,
+                               logLik = 0.488478652112829,
+                               design = "balanced",
                                call = quote(opm(x = y~x, data = d, n.samp = 10)),
+                               .Environment = environment(),
                                time.indicators = FALSE,
                                index = c('i', 't'),
                                terms = structure(y~x,
@@ -211,9 +219,20 @@ test_that('dummy vals', {
                                                                1.35629081137943),
                                                              10, 2,
                                                              dimnames = list(NULL, c('1', 'tind.2')))),
+                                fitted.values = matrix(c(-0.818553236715906, 0.818553236715905,
+                                                            0.249850133411945, -0.249850133411945, 1.2010185374178, -1.2010185374178), 2, 3),
+                                residuals = matrix(c(1.15542216431175e-05,
+                                                     -1.15542216424513e-05, -5.42864063056703e-05, 5.42864063057258e-05,
+                                                     -5.29084412208558e-05, 5.29084412215219e-05),
+                                                   2, 3),
+                                df.residual = 2*3 - 3,
+                                logLik = 46.3811794934746,
+                                design = "balanced",
                                 call = quote(opm(x = x, y = y, n.samp = 10, add.time.indicators = TRUE)),
+                                .Environment = environment(),
                                 time.indicators = TRUE),
-                           class = 'opm'))
+                           class = 'opm'),
+                 tolerance = if (.Machine$sizeof.pointer == 4) 1e-6 else .Machine$double.eps^0.5)
 })
 
 
@@ -262,7 +281,18 @@ test_that('formula dummy vals', {
                                                                1.35629081137943),
                                                              10, 2,
                                                              dimnames = list(NULL, c('1', 'tind.2')))),
+                                fitted.values = matrix(c(-0.818553236715906, 0.818553236715905,
+                                                            0.249850133411945, -0.249850133411945, 1.2010185374178, -1.2010185374178), 2, 3),
+                                residuals = matrix(c(1.15542216431175e-05,
+                                                     -1.15542216424513e-05, -5.42864063056703e-05, 5.42864063057258e-05,
+                                                     -5.29084412208558e-05, 5.29084412215219e-05),
+                                                   2, 3,
+                                                   dimnames=list(t=2:3, i=1:3)),
+                                df.residual = 2*3 - 3,
+                                logLik = 46.3811794934746,
+                                design = "balanced",
                                 call = quote(opm(x = y ~ x, data = d, n.samp = 10, add = TRUE)),
+                                .Environment = environment(),
                                 time.indicators = TRUE,
                                 index = c('i', 't'),
                                 terms = structure(y~x,
@@ -278,9 +308,63 @@ test_that('formula dummy vals', {
                                                   predvars = quote(list(y, x)),
                                                   dataClasses = c(y='numeric', x='numeric'),
                                                   class=c('terms', 'formula'))),
-                           class = 'opm'))
+                           class = 'opm'),
+                 tolerance = if (.Machine$sizeof.pointer == 4) 1e-6 else .Machine$double.eps^0.5)
 })
 
+
+test_that('early dropouts', {
+    set.seed(123)
+    xx <- array(NA, dim=dim(x) + c(0, 0, 1))
+    xx[,,seq_len(ncol(y))] <- x
+    yy <- matrix(NA, nrow(y), ncol(y)+1)
+    yy[,seq_len(ncol(y))] <- y
+
+    ## one more case, but immediately drops out
+    expect_equal(dim(xx), dim(x)+c(0,0,1))
+    expect_equal(dim(yy), dim(y)+c(0,1))
+
+    expect_equal(opm(xx, yy, n = 10),
+                 structure(list(samples = list(rho = c(0.728, 0.574,
+                                                       -0.181, 0.763,
+                                                       0.877, 0.965,
+                                                       0.0559999999999999,
+                                                       0.781, 0.102,
+                                                       -0.086),
+                                               sig2 = 1 / c(3.50041867260549,
+                                                            4.00944598251174,
+                                                            1.74928182974987,
+                                                            0.0471496595688863,
+                                                            0.342753347371835,
+                                                            0.0355468448260593,
+                                                            0.578145844500398,
+                                                            1.84521258726027,
+                                                            1.89471612513104,
+                                                            0.815747433844173),
+                                               beta = as.matrix(c(1.06781404188239,
+                                                                  1.57176166272772,
+                                                                  0.984064976368265,
+                                                                  2.10164684546106,
+                                                                  0.663384108167381,
+                                                                  -0.714948757610917,
+                                                                  1.49999093333423,
+                                                                  1.25150458784134,
+                                                                  1.11183526859818,
+                                                                  1.05848623306165))),
+                                fitted.values = matrix(c(-0.249023320200172, 0.249023320200172,
+                                                         0.883217759019736, -0.883217759019736, 1.17225244244488, -1.17225244244488,
+                                                       0, 0), 2, 4),
+                                residuals = matrix(c(-0.569518362294091,
+                                                     0.569518362294091, -0.633421912014096, 0.633421912014096, 0.0287131865317012,
+                                                   -0.0287131865317007, 0, 0), 2, 4),
+                                df.residual = 2*3 - 2,
+                                logLik = 0.435112589801499,
+                                design = "unbalanced (with dropouts)",
+                                call = quote(opm(x = xx, y = yy, n.samp = 10)),
+                                .Environment = environment(),
+                                time.indicators = FALSE),
+                           class = 'opm'))
+})
 
 test_that('confint', {
     expect_equal(confint(o),
@@ -311,7 +395,9 @@ test_that('coef', {
 
 test_that('print', {
     expect_equal(capture.output(o),
-                 c('Call:',
+                 c('\tPanel design: balanced',
+                   '',
+                   'Call:',
                    'opm(x = y ~ x, data = d, n.samp = 10)',
                    '',
                    'Coefficients:',
@@ -333,4 +419,14 @@ test_that('summary', {
                    'rho    -0.15962   -0.02352   0.65100    0.83476    0.9452',
                    'sig2    0.25757    0.39221   0.89877   13.16080   26.5743',
                    'beta   -0.40482    0.80448   1.08982    1.54018    1.9824'))
+})
+
+
+test_that('DIC', {
+    expect_equal(DIC(o),
+                 16.807856425829)
+    set.seed(123)
+    expect_equal(DIC(opm(x, y, n = 10, add = TRUE)),
+                 -133.868546487072,
+                 tolerance = if (.Machine$sizeof.pointer == 4) 1e-7 else .Machine$double.eps^0.5)
 })

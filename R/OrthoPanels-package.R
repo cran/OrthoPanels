@@ -12,6 +12,13 @@
 #' parameters that is exact and consistent as \eqn{N} approaches infinity
 #' for \eqn{T} greater than or equal to 2.
 #'
+#' Orthopanels can accomodate unbalanced panel data, in that some
+#' respondents drop out early (attrition). It is assumed respondents
+#' will have observations up until they dropout and then NAs in
+#' subsequent waves. A future update will accommodate respondents that
+#' enter the panel late (refreshment). The estimation is conducted
+#' under the assumption that the data is missing at random.
+#' 
 #' @references
 #'
 #' Lancaster, T. (2000) The incidental parameter problem since 1948.

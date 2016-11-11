@@ -142,6 +142,14 @@ test_that('formula', {
                      n.samp = 10),
                  expected)
 
+    ## values at T=1 in X aren't used and having NAs there shouldn't
+    ## affect the result
+    x[x[1,,]==1,,] <- NA
+    set.seed(123)
+    expect_equal(opm(y~x, d,
+                     n.samp = 10),
+                 expected)
+    
     ## look for variables in the parent frame
     x <- c(x)
     y <- c(y)
@@ -168,6 +176,16 @@ test_that('formula', {
     set.seed(123)
     expected$call <- quote(opm(x = y~x, data = d,
                                index = c('i', 't'), n.samp = 10))
+    expect_equal(opm(y~x, d, index=c('i', 't'), n.samp = 10),
+                 expected)
+
+    ## different order for i and t columns
+    d$i <- letters[d$i]
+    d$t <- d$t*1000
+    d <- d[sample(nrow(d)), ]
+    dimnames(expected$residuals) <- list(t = 2:3 * 1000,
+                                         i = letters[1:3])
+    set.seed(123)
     expect_equal(opm(y~x, d, index=c('i', 't'), n.samp = 10),
                  expected)
    

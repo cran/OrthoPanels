@@ -34,6 +34,31 @@ p_rho <- function(x, y, rho, log.p = FALSE) {
 }
 
 
+## Moves latecomers to still start at T=1
+align_latecomers <- function(x, y) {
+    T <- nrow(y)
+    N <- ncol(y)
+    K <- dim(x)[2]
+    
+    for (i in seq_len(N)) {
+        t <- 1L
+        while (t <= T &&
+               (any(is.na(x[t, , i])) ||
+                any(is.na(y[t, i])))) {
+            t <- t + 1L
+        }
+        if (t > 1L && t < T) {
+            t_keep <- T-t+1
+            x[seq_len(t_keep), , i] <- x[seq(t, len=t_keep), , i]
+            y[seq_len(t_keep), i] <- y[seq(t, len=t_keep), i]
+            x[seq(t_keep+1, T),, i] <- NA
+            y[seq(t_keep+1, T), i] <- NA
+        }
+    }
+    list(x = x, y = y)
+}
+
+
 ## Centers X_i from agent-specific means for each column (dropping the first wave)
 center_x <- function(x, Ti) {
     T <- nrow(x) - 1                 # initial values are not modelled
@@ -214,13 +239,13 @@ Ti <- function(x, y) {
     
     Ti <- integer(N)
 
-    x <- is.na(x)
+    x <- is.na(x[-1,,, drop = FALSE])
     for (i in seq_len(N)) {
         Xi <- x[,,i, drop=FALSE]
         
         no_response <- which(apply(Xi, 1, any))
         
-        Ti[i] <- if (length(no_response)>0) min(no_response)-1 else T
+        Ti[i] <- if (length(no_response)>0) min(no_response) else T
     }
     no_response_y <- apply(is.na(y), 2,
                            function(Y_i) if (any(Y_i)) which.max(Y_i)-1 else T)

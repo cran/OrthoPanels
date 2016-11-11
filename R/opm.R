@@ -90,6 +90,10 @@ opm.default <- function(x, y, n.samp, add.time.indicators = FALSE, ...) {
     ## clean up the call name to refer to the generic
     cl[[1]] <- as.name('opm')
     
+    aligned_xy <- align_latecomers(x, y)
+    x <- aligned_xy$x
+    y <- aligned_xy$y
+    
     if (add.time.indicators) {
         x <- with_time_indicators(x)
     }
@@ -195,6 +199,7 @@ with_time_indicators <- function(x) {
 ## - x: 3-d array for predictors
 ## - y: matrix for responses
 ## - mt: the 'terms' object used
+#' @importFrom stats reshape
 reshape_inputs <- function(formula, data, subset, index, envir) {
     mf <- eval(bquote(stats::model.frame(formula = .(formula),
                                          data = .(data),
@@ -204,24 +209,40 @@ reshape_inputs <- function(formula, data, subset, index, envir) {
     
     mt <- attr(mf, "terms")
     attr(mt, "intercept") <- 0L
-    
+    i <- factor(data[[index[1]]])
+    t <- factor(data[[index[2]]])
     y <- model.response(mf, "numeric")
-    yf <- data.frame(i = data[[index[1]]],
-                     t = data[[index[2]]],
+    yf <- data.frame(i = i,
+                     t = t,
                      y = y)
     y <- xtabs(y~t+i, yf)
     class(y) <- 'matrix'
+
+    yf$i <- as.integer(yf$i)
+    yf$t <- as.integer(yf$t)
     y_nas <- as.matrix(yf[is.na(yf$y), 2:1])
     y[y_nas] <- NA
+
+    missing_obs <- reshape(as.data.frame(table(i, t) == 0),
+                           direction = 'long',
+                           varying=list(levels(t)),
+                           timevar = 't',
+                           idvar='i',
+                           v.names='count')
+    missing_obs <- missing_obs[missing_obs[['count']], c('t', 'i')]
+    y[as.matrix(missing_obs)] <- NA
+
     
     x <- model.matrix(mt, mf)
-    xf <- data.frame(i = data[[index[1]]], t = data[[index[2]]],
+    xf <- data.frame(i = i, t = t,
                      as.data.frame(x))
     x <- xtabs(as.formula(paste0('cbind(',
                                  paste(colnames(x), collapse=','),
                                  ') ~ t+i')),
                xf)
     class(x) <- 'array'
+    xf$i <- as.integer(xf$i)
+    xf$t <- as.integer(xf$t)
     x_nas <- as.matrix(xf[apply(xf[, -(1:2), drop=FALSE], 1,
                                 function(row)any(is.na(row))), 2:1])
     
@@ -229,6 +250,7 @@ reshape_inputs <- function(formula, data, subset, index, envir) {
     for (k in seq_len(dim(x)[3])) {
         x[,,k][x_nas] <- NA
     }
+    x[missing_obs[[1]], missing_obs[[2]], ] <- NA
     x <- aperm(x, c(1L, 3L, 2L))
     
     list(x=x, y=y, mt=mt)

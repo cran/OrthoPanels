@@ -27,3 +27,8 @@ generate_data <- function(N, T, K = 1,
     
     list(x = x, y = y)
 }
+
+#source('../../R/opm.R')
+#source('../../R/OrthoPanels-package.R')
+#source('../../R/rho.R')
+#source('../../R/sample.R')

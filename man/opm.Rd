@@ -114,4 +114,3 @@ d <- data.frame(i = rep(seq(N), T+1),
 opm(y~x1, d, n.samp = 10)
 
 }
-

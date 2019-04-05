@@ -37,4 +37,3 @@ parameter.
 Method for \code{\link{hist}} applied to \code{\link{opm}} objects.
 Each parameter will be plotted in a separate figure.
 }
-

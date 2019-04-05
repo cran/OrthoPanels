@@ -35,4 +35,3 @@ Panel Data: Monte Carlo Evidence and an Application to Employment
 Equations. \emph{Review of Economic Studies}, \bold{58(2)},
 277--297.
 }
-

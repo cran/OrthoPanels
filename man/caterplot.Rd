@@ -36,4 +36,3 @@ caterplot(o, main = NULL, labels = expression(alpha, beta, sigma^2))
 }
 
 }
-

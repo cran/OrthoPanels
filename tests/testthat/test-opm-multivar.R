@@ -7,7 +7,9 @@ y <- NULL
 d <- NULL
 o <- NULL
 local({
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
+
 
     N <- 3
     T <- 2
@@ -23,7 +25,9 @@ local({
                             dimnames = list(NULL, paste0('x', seq(K)))),
                      y = c(y))
 
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
+
     o <<- opm(y~x1+x2, d, n.samp = 10)
 })
 
@@ -50,7 +54,10 @@ test_that('data', {
 
 
 test_that('default', {
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
+
+
     expect_equal(opm(x, y, n = 10),
                  structure(list(samples = list(rho = c(0.805, 0.425,
                                                        -0.181, 0.763,
@@ -95,7 +102,10 @@ test_that('default', {
 
 
 test_that('named matrix', {
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
+
+
     colnames(x) <- c('x1', 'x2')
     expect_equal(opm(x, y, n = 10),
                  structure(list(samples = list(rho = c(0.805, 0.425,
@@ -197,7 +207,10 @@ test_that('formula', {
                           class = 'opm')
 
     ## default index is the first two columns of the data
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
+
+
     expect_equal(opm(y~x1+x2, d,
                      n.samp = 10),
                  expected)
@@ -205,7 +218,10 @@ test_that('formula', {
     d <- d[,c('y', 'x1', 't', 'i', 'x2')]
 
     ## specify index column by position
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
+
+
     expected$call <- quote(opm(x = y~x1+x2, data = d,
                                index = 4:3, n.samp = 10))
     expect_equal(opm(y~x1+x2, d, index=4:3,
@@ -223,7 +239,10 @@ test_that('formula', {
 
 
 test_that('early dropouts', {
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
+
+
     xx <- array(NA, dim=dim(x) + c(0, 0, 1))
     xx[,,seq_len(ncol(y))] <- x
     yy <- matrix(NA, nrow(y), ncol(y)+1)
@@ -342,3 +361,6 @@ test_that('DIC', {
     expect_equal(DIC(o),
                  24.8318940856621)
 })
+
+
+

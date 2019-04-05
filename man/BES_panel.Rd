@@ -31,4 +31,3 @@ from the 2010 British Election Study. The variables are as follows:
         10=\sQuote{increase taxes a lot and spend much more})
 }
 }
-

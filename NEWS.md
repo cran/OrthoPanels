@@ -1,4 +1,4 @@
-# OrthoPanels 1.1.0
+# OrthoPanels 1.1.1
 
 ## New features
 

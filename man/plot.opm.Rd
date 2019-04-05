@@ -35,4 +35,3 @@ Method for \code{\link{plot}} applied to \code{\link{opm}} objects.
 Each parameter will be plotted as a density plot in a separate
 figure.
 }
-

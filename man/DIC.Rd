@@ -33,4 +33,3 @@ Note the speed of computation of the DIC in proportional to
     the number of sampled values of the parameters in the opm
     object.
 }
-

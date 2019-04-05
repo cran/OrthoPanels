@@ -34,4 +34,3 @@ Carlo sample of the parameter "\code{parm}", as produced by
 \seealso{
 \code{\link{quantile}}
 }
-

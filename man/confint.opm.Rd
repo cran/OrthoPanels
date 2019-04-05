@@ -34,4 +34,3 @@ interval of the posterior sample.
 \seealso{
 \code{\link{confint}}
 }
-

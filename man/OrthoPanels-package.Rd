@@ -39,4 +39,3 @@ partially consistent observations. \emph{Econometrica}, \bold{16},
 Nickell, S. (1981) Biases in dynamic models with fixed effects.
 \emph{Econometrica}, \bold{49}, 1417--1426.
 }
-

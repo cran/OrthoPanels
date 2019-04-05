@@ -18,4 +18,3 @@ p_rho(x, y, rho, log.p = FALSE)
 \description{
 Returns the posterior density \eqn{p(\rho|\Theta)}
 }
-

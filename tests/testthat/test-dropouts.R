@@ -1,3 +1,5 @@
+
+
 context('dropouts')
 
 ## Generate test data without littering the environment with temporary
@@ -7,7 +9,8 @@ y <- NULL
 d <- NULL
 o <- NULL
 local({
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
 
     N <- 10
     T <- 3
@@ -20,7 +23,8 @@ local({
                      x = c(x),
                      y = c(y))
 
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
     o <<- opm(y~x, d, n.samp = 10)
 })
 
@@ -51,8 +55,13 @@ test_that('data', {
                            nrow = 4, ncol = 10))
 })
 
+
+
+
+
 test_that('default', {
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
     expect_equal(opm(x, y, n = 10),
                  structure(list(samples = list(rho = c(0.847, 0.466,
                                                        0.767, 0.763, 0.577, 0.973, 0.688, 0.553, 0.672, 0.735),
@@ -98,7 +107,8 @@ test_that('late-arrivals', {
     x[,,6] <- c(NA, x[1:3, , 6])
     y[,6] <- c(NA, y[1:3, 6])
     
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
     expect_equal(opm(x, y, n = 10),
                  structure(list(samples = list(rho = c(0.847, 0.466,
                                                        0.767, 0.763, 0.577, 0.973, 0.688, 0.553, 0.672, 0.735),
@@ -141,13 +151,15 @@ test_that('late-arrivals', {
     d[d$i == 6,'t'] <- 2:5
     d <- subset(d, t != 5)
     o$.Environment = environment()
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
     expect_equal(opm(y ~ x, d, n.samp = 10), o)
 })
 
 
 test_that('formula', {
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
     expected <- o
     expected$.Environment <- environment()
     expect_equal(opm(y~x, d, n.samp = 10), expected)
@@ -165,3 +177,6 @@ test_that('formula', {
 test_that('DIC', {
     expect_equal(DIC(o), 15.1580003661899)
 })
+
+
+

@@ -7,7 +7,10 @@ y <- NULL
 d <- NULL
 o <- NULL
 local({
-    set.seed(123)
+    
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
+   
     N <- 3
     T <- 2
 
@@ -19,7 +22,9 @@ local({
                      x = c(x),
                      y = c(y))
 
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
+
     o <<- opm(y~x, d, n.samp = 10)
 })
 
@@ -38,7 +43,9 @@ test_that('data', {
 
 
 test_that('default', {
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
+
     expect_equal(opm(x, y, n = 10),
                  structure(list(samples = list(rho = c(0.728, 0.574,
                                                        -0.181, 0.763,
@@ -137,7 +144,9 @@ test_that('formula', {
                           class = 'opm')
 
     ## default index is the first two columns of the data
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
+
     expect_equal(opm(y~x, d,
                      n.samp = 10),
                  expected)
@@ -145,7 +154,9 @@ test_that('formula', {
     ## values at T=1 in X aren't used and having NAs there shouldn't
     ## affect the result
     x[x[1,,]==1,,] <- NA
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
+
     expect_equal(opm(y~x, d,
                      n.samp = 10),
                  expected)
@@ -155,7 +166,9 @@ test_that('formula', {
     y <- c(y)
     i <- rep(1:3, each=3)
     t <- rep(1:3, 3)
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
+
     expected$call <- quote(opm(x = y~x, index = c('i', 't'),
                                n.samp = 10))
     expect_equal(opm(y~x, index = c('i', 't'),
@@ -165,7 +178,9 @@ test_that('formula', {
     d <- d[,c('y', 'x', 't', 'i')]
 
     ## specify index column by position
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
+
     expected$call <- quote(opm(x = y~x, data = d,
                                index = 4:3, n.samp = 10))
     expect_equal(opm(y~x, d, index=4:3,
@@ -173,7 +188,9 @@ test_that('formula', {
                  expected)
    
     ## specify index column by name
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
+
     expected$call <- quote(opm(x = y~x, data = d,
                                index = c('i', 't'), n.samp = 10))
     expect_equal(opm(y~x, d, index=c('i', 't'), n.samp = 10),
@@ -185,7 +202,9 @@ test_that('formula', {
     d <- d[sample(nrow(d)), ]
     dimnames(expected$residuals) <- list(t = 2:3 * 1000,
                                          i = letters[1:3])
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
+
     expect_equal(opm(y~x, d, index=c('i', 't'), n.samp = 10),
                  expected)
    
@@ -193,7 +212,9 @@ test_that('formula', {
 
 
 test_that('dummy vals', {
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
+
     expect_equal(opm(x, y, n = 10, add = TRUE),
                  structure(list(samples = list(rho = c(-0.647,
                                                        -0.647,
@@ -255,7 +276,9 @@ test_that('dummy vals', {
 
 
 test_that('formula dummy vals', {
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
+
     expect_equal(opm(y ~ x, d, n = 10, add = TRUE),
                  structure(list(samples = list(rho = c(-0.647,
                                                        -0.647,
@@ -332,7 +355,9 @@ test_that('formula dummy vals', {
 
 
 test_that('early dropouts', {
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
+
     xx <- array(NA, dim=dim(x) + c(0, 0, 1))
     xx[,,seq_len(ncol(y))] <- x
     yy <- matrix(NA, nrow(y), ncol(y)+1)
@@ -443,8 +468,15 @@ test_that('summary', {
 test_that('DIC', {
     expect_equal(DIC(o),
                  16.807856425829)
-    set.seed(123)
+    suppressWarnings(RNGversion("3.5.0"))
+    set.seed(123, kind = "Mersenne-Twister", normal.kind = "Inversion")
+
     expect_equal(DIC(opm(x, y, n = 10, add = TRUE)),
                  -133.868546487072,
                  tolerance = if (.Machine$sizeof.pointer == 4) 1e-7 else .Machine$double.eps^0.5)
 })
+
+
+
+
+

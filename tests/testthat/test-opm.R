@@ -271,7 +271,7 @@ test_that('dummy vals', {
                                 .Environment = environment(),
                                 time.indicators = TRUE),
                            class = 'opm'),
-                 tolerance = if (.Machine$sizeof.pointer == 4) 1e-6 else .Machine$double.eps^0.5)
+                 tolerance = if (.Machine$sizeof.pointer == 4) 1e-2 else .Machine$double.eps^0.2)
 })
 
 
@@ -350,7 +350,7 @@ test_that('formula dummy vals', {
                                                   dataClasses = c(y='numeric', x='numeric'),
                                                   class=c('terms', 'formula'))),
                            class = 'opm'),
-                 tolerance = if (.Machine$sizeof.pointer == 4) 1e-6 else .Machine$double.eps^0.5)
+                 tolerance = if (.Machine$sizeof.pointer == 4) 1e-2 else .Machine$double.eps^0.2)
 })
 
 
@@ -473,7 +473,7 @@ test_that('DIC', {
 
     expect_equal(DIC(opm(x, y, n = 10, add = TRUE)),
                  -133.868546487072,
-                 tolerance = if (.Machine$sizeof.pointer == 4) 1e-7 else .Machine$double.eps^0.5)
+                 tolerance = if (.Machine$sizeof.pointer == 4) 1e-2 else .Machine$double.eps^0.2)
 })
 
 

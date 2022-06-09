@@ -4,8 +4,15 @@
 \alias{hist.opm}
 \title{Histogram of an \code{opm} Object}
 \usage{
-\method{hist}{opm}(x, parm, ask = dev.interactive(), plot = TRUE,
-  main = NULL, xlab = NULL, ...)
+\method{hist}{opm}(
+  x,
+  parm,
+  ask = dev.interactive(),
+  plot = TRUE,
+  main = NULL,
+  xlab = NULL,
+  ...
+)
 }
 \arguments{
 \item{x}{an instance of class \code{opm}}

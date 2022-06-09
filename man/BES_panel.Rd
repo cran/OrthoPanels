@@ -3,7 +3,9 @@
 \name{BES_panel}
 \alias{BES_panel}
 \title{Responses from the 2010 British Election Study}
-\format{A data frame with 5535 rows and 11 variables}
+\format{
+A data frame with 5535 rows and 11 variables
+}
 \description{
 A survey of 1845 respondents using 3 waves of panel survey data
 from the 2010 British Election Study. The variables are as follows:

@@ -109,6 +109,7 @@ abline(v=0)
 We can use the function `plot()` to obtain the posterior density of
 each parameter:
 
+
 ```{r}
 plot(BES.opm, 'rho')
 ```
@@ -129,4 +130,29 @@ parameter samples. For example, for the first independent variable
 
 ```{r}
 quantile(BES.opm$samples$beta[,1]/(1-BES.opm$samples$rho), probs=c(0.025, 0.5, 0.975))
+```
+
+
+
+The function `longRunEffects` Computes long term effects and confidence intervals of \code{opm} Model Parameters, using the formula as per explanation above.
+By default, it computes the median and 95%
+equal tailed credible intervals for the long-run effects from the
+parameter samples.
+
+```{r}
+longRunEffects(BES.opm,prob=c(0.025,0.5,0.975))
+```
+
+
+
+The function `caterplot_longRun` creates side-by-side plots of credible
+intervals of the opm model long-run effects, which are computed using the 
+function The function `longRunEffects`. The intervals are displayed as
+horizontal lines, with the 90% interval using a thicker line width and
+the 95% interval a thinner one. The posterior median is indicated with
+a dot.
+
+
+```{r}
+caterplot_longRun(BES.opm)
 ```

@@ -10,8 +10,7 @@ opm(x, ...)
 
 \method{opm}{default}(x, y, n.samp, add.time.indicators = FALSE, ...)
 
-\method{opm}{formula}(x, data = environment(x), subset = NULL,
-  index = 1:2, n.samp, ...)
+\method{opm}{formula}(x, data = environment(x), subset = NULL, index = 1:2, n.samp, ...)
 }
 \arguments{
 \item{x}{a formula (see description of parameter \code{formula}
@@ -99,7 +98,7 @@ beta <- matrix(beta, K, 1)
 ## $x_i = 0.75 f + N(0, 1)$:
 x <- array(.75*f, dim=c(N, K, (T+1))) + rnorm(N*K*(T+1))
 
-## $y_{i,t} = \\rho y_{i,t-1} + \\beta x_{i,t} + f_i + N(0,1)$:
+## $y_{i,t} = \rho y_{i,t-1} + \beta x_{i,t} + f_i + N(0,1)$:
 y <- matrix(0, N, T+1)
 for (t in seq_len(T+1)) {
     yy <- if (t>1) y[,t-1] else 0

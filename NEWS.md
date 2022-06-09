@@ -15,3 +15,9 @@ based on Arellano and Bond (1991)
 - missing data only in the first wave of `X` doesn't affect the result.
 
 - handle case and time variables that aren't `1:N` and `1:T`
+
+
+# OrthoPanels 1.2.4
+
+OrthoPanels can now estimate the long-run effects via function LongRunEffects. 
+Longrun effects can be lotted using the caterpilar_longRun function.

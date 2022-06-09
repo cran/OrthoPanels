@@ -4,8 +4,7 @@
 \alias{plot.opm}
 \title{Plot Method for an \code{opm} Object}
 \usage{
-\method{plot}{opm}(x, parm, ask = dev.interactive(), main = NULL,
-  xlab = NULL, ...)
+\method{plot}{opm}(x, parm, ask = dev.interactive(), main = NULL, xlab = NULL, ...)
 }
 \arguments{
 \item{x}{an instance of class \code{opm}}

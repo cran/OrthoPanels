@@ -3,7 +3,9 @@
 \name{abond_panel}
 \alias{abond_panel}
 \title{UK Company Data Panel}
-\format{A data frame with 813 rows and 16 variables}
+\format{
+A data frame with 813 rows and 16 variables
+}
 \description{
 The dynamics of labour demand of firm \eqn{id} in the United Kingdom
 in year \eqn{year} as a function of real product wages, gross capital

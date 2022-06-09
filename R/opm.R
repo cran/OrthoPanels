@@ -206,6 +206,8 @@ reshape_inputs <- function(formula, data, subset, index, envir) {
                                          subset = .(subset),
                                          na.action = na.pass)),
                envir)
+
+
     
     mt <- attr(mf, "terms")
     attr(mt, "intercept") <- 0L
@@ -236,8 +238,9 @@ reshape_inputs <- function(formula, data, subset, index, envir) {
     x <- model.matrix(mt, mf)
     xf <- data.frame(i = i, t = t,
                      as.data.frame(x))
+    ncols=ncol(xf)
     x <- xtabs(as.formula(paste0('cbind(',
-                                 paste(colnames(x), collapse=','),
+                                 paste(colnames(xf)[3:ncols], collapse=','),
                                  ') ~ t+i')),
                xf)
     class(x) <- 'array'
@@ -640,3 +643,108 @@ caterplot <- function(x, parm, main = paste('Caterpillar plot of', xname),
     points(ranges[3,], seq_len(ncol(ranges)), pch=19)
     invisible(ranges)
 }
+
+
+
+
+#' Long run effects based on the \code{opm} Model Parameters
+#'
+#' Computes long run effects and confidence intervals of \code{opm} Model Parameters
+#'
+#' @param opm_obj an instance of class \code{opm}
+#' @param parm a specification of which parameters are to be plotted,
+#'        a vector of names are the only legal values. If missing, all parameters are considered.
+#' @param probs a vector of specified quantiles, by default, the c(0.025,0.5,0.975) are ("\code{probs}")
+#' @return A matrix with quantiles on the rows, with number of rows specified as length of the \code{probs} vector for the specified quantiles, with covariates on the columns  
+#' @examples
+#' \dontrun{
+#' longRunEffects(opm_obj)
+#' longRunEffects(opm_obj,probs=c(0.975, 0.16, 0.5, 0.84, 0.025))
+#' }
+#' 
+#' @importFrom stats quantile
+#' @export
+longRunEffects <- function(opm_obj,parm=NULL,probs=c(0.025,0.5,0.975)){
+    
+    if (is.null(parm)){
+        param=opm_obj$samples$beta
+        VarNames=colnames(param)
+    }else{
+        param=opm_obj$samples$beta[,parm]
+        VarNames=parm
+        
+    }
+    
+    longRunEff=list()
+    if (is.vector(param)){
+          longRunEff[[1]]=quantile(param/(1-opm_obj$samples$rho), probs=probs) 
+          
+   }else{
+    
+        for (i in (1:ncol(param))){
+          longRunEff[[i]]=quantile(param[,i]/(1-opm_obj$samples$rho), probs=probs) 
+        }
+    }
+    
+    longRunEff_new=do.call(rbind,longRunEff)
+    rownames(longRunEff_new)=VarNames
+    
+    return(t(longRunEff_new))
+}
+
+
+#' Caterpillar Plots of long run effects based on \code{opm} Model Parameters
+#'
+#' Creates side-by-side plots of equal-tailed credible intervals of \code{opm}
+#' the long run effects parameters. The intervals are displayed as horizontal lines,
+#' with 90\% interval using a thicker line width and 95\% interval a
+#' thinner one. The posterior median is indicated with a dot.
+#' 
+#' @param x an instance of class \code{opm}
+#' @param parm a specification of which parameters are to be plotted,
+#'        a vector of names are the only legal values. If missing, all parameters are considered.
+#' @param main,xlab useful defaults for the plot title and X-axis label
+#' @param probs a vector specifying the quantiles, the defaults is 2.5\%, 5\%, 50\%, 95\%, and 97.5\% quantiles
+#' @param labels labels for each parameter's interval: see \code{\link[graphics]{axis}}
+#'
+#' @return A matrix of 2.5\%, 5\%, 50\%, 95\%, and 97.5\% quantiles for
+#' each of the desired parameters, with model parameters arranged in
+#' columns.
+#'
+#' @examples
+#' \dontrun{
+#' caterplot_longRun(o, main = NULL)
+#' }
+#' 
+#' @importFrom graphics axis segments points
+#' @export
+caterplot_longRun <- function(x, parm=NULL,main = 'Caterpillar plot of long run effects',
+                      xlab = 'Range of parameter samples',probs=c(.025, 0.05, .5, .95, .975),labels = colnames(ranges)) {
+
+   # xname <- paste(deparse(substitute(x)), collapse='\n')
+    
+    ranges <- longRunEffects(x,parm=parm,probs=probs)
+    labels = colnames(ranges) 
+    ncr=ncol(ranges)
+    nProbs=length(probs)
+    indMedian=which(probs==0.5)
+    # if (!(is.null(parm))){
+    #     ranges=data.frame(ranges[,parm])
+    #     labels=parm
+    #     ncr = length(parm)
+    # }
+    
+    
+   # ranges <- quantile(x, parm, probs=c(.025, 0.05, .5, .95, .975))
+
+    plot(NULL, xlim = range(ranges), ylim = c(ncr+1, 0),
+         main = main, xlab = xlab, yaxt='n', ylab = '')
+    axis(2, at = seq_len(ncr), labels = labels, las = 1)
+    segments(ranges[1,], seq_len(ncr), ranges[nProbs,], seq_len(ncr))
+    segments(ranges[2,], seq_len(ncr), ranges[nProbs-1,], seq_len(ncr), lwd=3)
+    points(ranges[indMedian,], seq_len(ncr), pch=19)
+    invisible(ranges)
+
+}
+
+
